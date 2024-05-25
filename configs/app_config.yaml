@@ -1,0 +1,29 @@
+# --------------------------------------------- HYDRA -----------------------------------------------------
+defaults:  
+  - _self_  
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: custom
+
+hydra:
+  output_subdir: null
+  run:  
+    dir: .
+# ----------------------------------------------- PIPELINE -------------------------------------------------
+
+pipeline:
+  save_video : True  # Сохранение итогового видео обработки
+  send_info_db: True  # Сохраняем ли инфо в бд (требуется заранее запустить микросервисы если ставите True)
+  show_in_web: True  # Отображение результатов обработки видеопотока в веб-интерфейсе (Flask) вместо cv2.imshow
+
+# ------------------------------------------------- NODES --------------------------------------------------
+
+video_reader:
+  src: 0 #test_videos/test_video.mp4  # путь до файла обработки или номер камеры
+  skip_secs : 0  # считываем кадры раз в <skip_secs> секунд
+  roads_info: configs/entry_exit_lanes.json  # json файл с координатами дорог на видео
+
+show_node:
+  scale : 0.7  # Масштабирование итогового окна результатов при imshow=True
+  imshow: True  # Нужно ли выводить видео в процессе обработки
+  fps_counter_N_frames_stat : 15  # Окно усредения fsp счетчика
+  draw_fps_info : True  # Указывать ли fps обработки
