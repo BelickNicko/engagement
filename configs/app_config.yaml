@@ -19,11 +19,24 @@ pipeline:
 
 video_reader:
   src: 0 #test_videos/test_video.mp4  # путь до файла обработки или номер камеры
-  skip_secs : 0  # считываем кадры раз в <skip_secs> секунд
+  skip_secs : 0 # считываем кадры раз в <skip_secs> секунд
   roads_info: configs/entry_exit_lanes.json  # json файл с координатами дорог на видео
+
+PointsDetection:
+  max_num_faces : 1
+  refine_landmarks : True
+  min_detection_confidence : 0.5
+  min_tracking_confidence : 0.5
+  eye_idxs: {
+                    "left": [362, 385, 387, 263, 373, 380],
+                    "right": [33, 160, 158, 133, 153, 144],
+            }
+  ear_tresh: 0.25
 
 show_node:
   scale : 0.7  # Масштабирование итогового окна результатов при imshow=True
   imshow: True  # Нужно ли выводить видео в процессе обработки
   fps_counter_N_frames_stat : 15  # Окно усредения fsp счетчика
   draw_fps_info : True  # Указывать ли fps обработки
+  show_coords : True # Отображать ли точки глаз
+  show_sleep_status: True # Отображать ли статус сонливости 
