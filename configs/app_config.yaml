@@ -16,11 +16,10 @@ pipeline:
   show_in_web: True  # Отображение результатов обработки видеопотока в веб-интерфейсе (Flask) вместо cv2.imshow
 
 # ------------------------------------------------- NODES --------------------------------------------------
-
-video_reader:
+VideoReader:
   src: 0 #test_videos/test_video.mp4  # путь до файла обработки или номер камеры
   skip_secs : 0 # считываем кадры раз в <skip_secs> секунд
-  roads_info: configs/entry_exit_lanes.json  # json файл с координатами дорог на видео
+  start_timestamp: 0 #начальное время с которого стартуем
 
 PointsDetection:
   max_num_faces : 1
@@ -40,3 +39,7 @@ show_node:
   draw_fps_info : True  # Указывать ли fps обработки
   show_coords : True # Отображать ли точки глаз
   show_sleep_status: True # Отображать ли статус сонливости 
+
+Statistic:
+  buffer_size: 30 # Время хранения статистик по количеству морганий
+  how_often_seconds: 15 

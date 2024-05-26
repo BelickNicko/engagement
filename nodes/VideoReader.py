@@ -13,15 +13,16 @@ logger = logging.getLogger(__name__)
 class VideoReader: 
 
     def __init__(self, config: dict) -> None:
-        self.video_pth = config["src"]
+        config_VideoReader = config['VideoReader']
+        self.video_pth = config_VideoReader["src"]
         self.video_source = f"Processing of {self.video_pth}"
         assert (
             os.path.isfile(self.video_pth) or type(self.video_pth) == int
         ), f"VideoReader| Файл {self.video_pth} не найден"
 
         self.stream = cv2.VideoCapture(self.video_pth)
-        self.skip_secs = config["skip_secs"]
-
+        self.skip_secs = config_VideoReader["skip_secs"]
+        self.start_timestamp = config_VideoReader["start_timestamp"]
         self.last_frame_timestamp = -1 # специально отрицательное значение при иницииализации
         self.first_timestamp = 0 # значение  времени в момент первого кадра потока
 
@@ -45,7 +46,7 @@ class VideoReader:
                     # отправляем VideoENdBreakElement чтобы обозначить окончание видеопотока
                     yield VideoEndBreakElement(self.video_pth, self.last_frame_timestamp)
                 break
-            # вычисляем timestemt в случае если если камера - стартуем с 0 секунд 
+            # вычисляем timestemp в случае если если камера - стартуем с 0 секунд 
         # Вычисление timestamp в случае если вытягиваем с видоса или камеры (стартуем с 0 сек)
             if type(self.video_pth) == int:
                 # с камеры:
@@ -70,5 +71,9 @@ class VideoReader:
             self.last_frame_timestamp = timestamp
 
             frame_number += 1
-
-            yield FrameElement(self.video_source, frame, timestamp, frame_number)
+            if  type(self.video_pth) != int: #int - стрим с камеры, строка - запись видео
+                time_date = timestamp + self.start_timestamp
+            else:
+                time_date = time.time() #timestamp
+                
+            yield FrameElement(self.video_source, frame, timestamp, frame_number, time_date)

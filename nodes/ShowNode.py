@@ -1,19 +1,15 @@
-import os
-import json
-import time
 import logging
-from typing import Generator
 import cv2
 
 from elements.FrameElement import FrameElement
 from elements.VideoEndBreakElement import VideoEndBreakElement
 from utils_local.utils import profile_time, FPS_Counter
-
+import math
 logger = logging.getLogger(__name__)
 
 class ShowNode:
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict) -> None:
         config_show_node = config['show_node']
         self.scale = config_show_node['scale']
         self.imshow = config_show_node['imshow']
@@ -28,27 +24,38 @@ class ShowNode:
         self.thickness = 2
         
         # Параметры для шрифтов для alerta:
-        self.fontFace_alert = 1
-        self.fontScale_alert = 2
+        self.fontFace_alert = 2
+        self.fontScale_alert = 4
         self.thickness_alert = 2
+        # Размеры и положение прямоугольника для текста
+        self.rect_width = 400  # Ширина прямоугольника
+        self.rect_height = 160  # Высота прямоугольника
 
+        #отображение частоты морганий
+        self.prev_blink_freq = "" #запоминаем предыдущее значение, чтобы выводить его между инференсами
+    
     @profile_time
     def process(self, frame_element: FrameElement, fps_counter=None) -> FrameElement:
         # Выйти из обработки если это пришел VideoEndBreakElement а не FrameElement
         if isinstance(frame_element, VideoEndBreakElement):
             return frame_element
-        #assert isinstance(
-           # frame_element, FrameElement
-        #), f"ShowNode | Неправильный формат входного элемента {type(frame_element)}"
+        assert isinstance(
+            frame_element, FrameElement
+        ), f"ShowNode | Неправильный формат входного элемента {type(frame_element)}"
 
         frame_result = frame_element.frame.copy()
-        height, width, _ = frame_result.shape
+        image_height, image_width, _ = frame_result.shape
         # Подсчет fps и отрисовка
         if self.draw_fps_info:
             fps_counter = fps_counter if fps_counter is not None else self.default_fps_counter
             fps_real = fps_counter.calc_FPS()
-
-            text = f"FPS: {fps_real:.1f}"
+            if frame_element.blinking_frequency == None:
+                text = f"Blink Freq: {self.prev_blink_freq}"
+            else:
+                text = "Blink Freq: "  + str(round(frame_element.blinking_frequency, 2))
+                self.prev_blink_freq = str(round(frame_element.blinking_frequency, 2))
+            text = f"FPS: {fps_real:.1f} {text}"
+            
             (label_width, label_height), _ = cv2.getTextSize(
                 text,
                 fontFace=self.fontFace,
@@ -67,28 +74,24 @@ class ShowNode:
                 thickness=self.thickness,
                 color=(255, 255, 255),
             )
+        
         if self.show_coords and frame_element.detected_coords != []:
             self._draw_points(frame_result, frame_element.detected_coords)
 
         if self.show_sleep_status:
-            if frame_element.sleep_status == 1:
+            if frame_element.sleep_status:
+                
                 alert = "Get up!"
-
-                # Размеры изображения
-                image_height, image_width, _ = frame_result.shape
-
-                # Размеры и положение прямоугольника для текста
-                rect_width = 200  # Ширина прямоугольника
-                rect_height = 80  # Высота прямоугольника
-                rect_x = (image_width - rect_width) // 2  # x-координата верхнего левого угла прямоугольника
-                rect_y = (image_height - rect_height) // 2  # y-координата верхнего левого угла прямоугольника
+              
+                rect_x = (image_width - self.rect_width) // 2  # x-координата верхнего левого угла прямоугольника
+                rect_y = (image_height - self.rect_height) // 2  # y-координата верхнего левого угла прямоугольника
 
                 # Положение текста внутри прямоугольника
                 text_x = rect_x + 10  # x-координата текста
-                text_y = rect_y + rect_height // 2  # y-координата текста (примерно посередине прямоугольника)
+                text_y = rect_y + self.rect_height // 2  # y-координата текста (примерно посередине прямоугольника)
 
                 # Отрисовка прямоугольника
-                cv2.rectangle(frame_result, (rect_x, rect_y), (rect_x + rect_width, rect_y + rect_height), (0, 0, 255), -1)
+                cv2.rectangle(frame_result, (rect_x, rect_y), (rect_x +self.rect_width, rect_y + self.rect_height), (0, 0, 255), -1)
 
                 # Отрисовка текста
                 cv2.putText(

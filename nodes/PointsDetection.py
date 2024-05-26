@@ -1,12 +1,9 @@
-import os
-import json
 import time
 import logging
-from typing import Generator
-import cv2
 import mediapipe as mp
-import matplotlib.pyplot as plt
+from collections import deque
 
+from utils_local.utils import profile_time
 from elements.FrameElement import FrameElement
 from elements.VideoEndBreakElement import VideoEndBreakElement
 
@@ -34,8 +31,15 @@ class PointsDetection:
         )
         
         
-    def process(self, frame_element: FrameElement) -> None:        
+    @profile_time
+    def process(self, frame_element: FrameElement) -> FrameElement:        
         
+        if isinstance(frame_element, VideoEndBreakElement):
+            return frame_element
+        assert isinstance(
+            frame_element, FrameElement
+        ), f"DetectionTrackingNodes | Неправильный формат входного элемента {type(frame_element)}"
+
         frame = frame_element.frame
         frame_h, frame_w, _ = frame.shape
 
@@ -44,13 +48,15 @@ class PointsDetection:
             lanmarks = results.multi_face_landmarks[0].landmark
             left_eye_ear, left_eye_coords =  self._coords(lanmarks, self.eye_idxs['left'], frame_w, frame_h)
             right_eye_ear, right_eye_coords =  self._coords(lanmarks, self.eye_idxs['right'], frame_w, frame_h)
-            frame_element.sleep_status = int(any([left_eye_ear < self.ear_tresh, right_eye_ear < self.ear_tresh]))
+            frame_element.blink = int(any([left_eye_ear < self.ear_tresh, right_eye_ear < self.ear_tresh]))
+
+            
             frame_element.detected_coords = left_eye_coords + right_eye_coords
         else:
             logger.warning("Can't find out key points")
-            frame_element.sleep_status = 1
+            frame_element.blink = -1
             frame_element.detected_coords  = []
-
+                
         return frame_element
     
     def _denormalize_coordinates(self, x, y, width, height):
@@ -73,7 +79,7 @@ class PointsDetection:
             ear = (P2_P6 + P3_P5) / (2.0 * P1_P4)
 
         except:
-            ear = 0.0
+            ear = 0
             coords_points = []
 
         return ear, coords_points
