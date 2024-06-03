@@ -14,7 +14,7 @@ pipeline:
   save_video : True  # Сохранение итогового видео обработки
   send_info_db: True  # Сохраняем ли инфо в бд (требуется заранее запустить микросервисы если ставите True)
   show_in_web: True  # Отображение результатов обработки видеопотока в веб-интерфейсе (Flask) вместо cv2.imshow
-
+  render_video_flask : True
 # ------------------------------------------------- NODES --------------------------------------------------
 VideoReader:
   src: 0 #test_videos/test_video.mp4  # путь до файла обработки или номер камеры
@@ -30,7 +30,7 @@ PointsDetection:
                     "left": [362, 385, 387, 263, 373, 380],
                     "right": [33, 160, 158, 133, 153, 144],
             }
-  ear_tresh: 0.25
+  ear_tresh: 0.15
 
 show_node:
   scale : 0.7  # Масштабирование итогового окна результатов при imshow=True
@@ -43,3 +43,7 @@ show_node:
 Statistic:
   buffer_size: 30 # Время хранения статистик по количеству морганий
   how_often_seconds: 15 
+
+flask_server_video_node:
+  host_ip: localhost  # где именно поднять сервис (localhost или "0.0.0.0")
+  port: 8000

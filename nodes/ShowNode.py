@@ -43,7 +43,7 @@ class ShowNode:
             frame_element, FrameElement
         ), f"ShowNode | Неправильный формат входного элемента {type(frame_element)}"
 
-        frame_result = frame_element.frame.copy()
+        frame_result = frame_element.frame_result.copy()
         image_height, image_width, _ = frame_result.shape
         # Подсчет fps и отрисовка
         if self.draw_fps_info:
@@ -110,7 +110,7 @@ class ShowNode:
         if self.imshow:
             cv2.imshow(frame_element.source, frame_show)
             cv2.waitKey(1)
-
+        
         return frame_element
     
     def  _draw_points(self, image, points, radius=2, color=(0, 255, 0), thickness=1):

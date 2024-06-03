@@ -1,24 +1,23 @@
-import time 
+import time
 import numpy as np
+from typing import List, Optional
 
 class FrameElement:
     # Класс, который характеризует каждый кадр
     def __init__(
         self,
         source: str,
-        frame: np.ndarray,
+        frame_result: np.ndarray,
         timestamp: float,
         frame_number: int,
         time_date: int,
-        blink: int| None = None,
-        detected_coords: list[list] | None = None,
-        frame_result: np.ndarray | None = None,
-        blinking_frequency: float | None = None,
+        blink: Optional[int] = None,
+        detected_coords: Optional[List[List]] = None,
+        blinking_frequency: Optional[float] = None,
         sleep_status: bool = False,
     ) -> None:
         
         self.source = source
-        self.frame = frame
         self.timestamp = timestamp
         self.frame_number = frame_number
         self.time_date = time_date

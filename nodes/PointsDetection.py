@@ -40,7 +40,7 @@ class PointsDetection:
             frame_element, FrameElement
         ), f"DetectionTrackingNodes | Неправильный формат входного элемента {type(frame_element)}"
 
-        frame = frame_element.frame
+        frame = frame_element.frame_result
         frame_h, frame_w, _ = frame.shape
 
         results = self.face_mesh.process(frame)
