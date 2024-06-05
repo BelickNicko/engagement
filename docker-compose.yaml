@@ -1,0 +1,42 @@
+version: '3.8'
+
+networks:
+  ml_monitoring:
+    driver: bridge
+
+services:
+  pg_e:
+    container_name: pg_e
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: ml_papa
+      POSTGRES_PASSWORD: ml_mama
+    ports:
+      - "5492:5432"
+    volumes:
+      - ./engagement_services/pg_ml:/var/lib/postgresql/data
+    networks:
+      - ml_monitoring
+
+  grafana:
+    container_name: grafana_engagement
+    image: grafana/grafana:latest
+    environment:
+      - TZ=Europe/Moscow
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=Power123
+      - GF_ALLOW_EMBEDDING=true
+      - GF_PANELS_DISABLE_SANITIZE_HTML=true
+    restart: unless-stopped
+    ports:
+      - "3112:3000"
+    volumes:
+      - ./engagement_services/grafana:/var/lib/grafana
+    networks:
+      - ml_monitoring
+
+volumes:
+  pg_e:
+  grafana:

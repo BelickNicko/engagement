@@ -13,6 +13,7 @@ class FrameElement:
         time_date: int,
         blink: Optional[int] = None,
         detected_coords: Optional[List[List]] = None,
+        eye_center_coords: Optional[List[List]] = None,
         blinking_frequency: Optional[float] = None,
         sleep_status: bool = False,
     ) -> None:
@@ -23,6 +24,7 @@ class FrameElement:
         self.time_date = time_date
         self.blink = blink
         self.detected_coords = detected_coords
+        self.eye_center_coords = eye_center_coords
         self.frame_result = frame_result
         self.blinking_frequency = blinking_frequency
         self.sleep_status = sleep_status

@@ -77,7 +77,7 @@ class ShowNode:
         
         if self.show_coords and frame_element.detected_coords != []:
             self._draw_points(frame_result, frame_element.detected_coords)
-
+            self._draw_points(frame_result, frame_element.eye_center_coords, color=(255, 0, 0))
         if self.show_sleep_status:
             if frame_element.sleep_status:
                 
@@ -103,7 +103,7 @@ class ShowNode:
                     thickness=self.thickness_alert,
                     color=(255, 255, 255),
                 )
-
+        frame_result = cv2.resize(frame_result, (800, 600))
         frame_element.frame_result = frame_result
         frame_show = cv2.resize(frame_result.copy(), (-1, -1), fx=self.scale, fy=self.scale)
         

@@ -46,12 +46,11 @@ class PointsDetection:
         results = self.face_mesh.process(frame)
         if results.multi_face_landmarks:
             lanmarks = results.multi_face_landmarks[0].landmark
-            left_eye_ear, left_eye_coords =  self._coords(lanmarks, self.eye_idxs['left'], frame_w, frame_h)
-            right_eye_ear, right_eye_coords =  self._coords(lanmarks, self.eye_idxs['right'], frame_w, frame_h)
+            left_eye_ear, left_eye_coords, left_eye_center =  self._coords(lanmarks, self.eye_idxs['left'], frame_w, frame_h)
+            right_eye_ear, right_eye_coords, right_eye_center =  self._coords(lanmarks, self.eye_idxs['right'], frame_w, frame_h)
             frame_element.blink = int(any([left_eye_ear < self.ear_tresh, right_eye_ear < self.ear_tresh]))
-
-            
             frame_element.detected_coords = left_eye_coords + right_eye_coords
+            frame_element.eye_center_coords = [left_eye_center, right_eye_center]
         else:
             logger.warning("Can't find out key points")
             frame_element.blink = -1
@@ -62,11 +61,11 @@ class PointsDetection:
     def _denormalize_coordinates(self, x, y, width, height):
         return int(x * width), int(y * height)
 
-    def _coords(self, lanmarks, refer_idxs, frame_width, frame_height):    
+    def _coords(self, landmarks, refer_idxs, frame_width, frame_height):    
         try:
             coords_points = []
             for i in refer_idxs:
-                lm = lanmarks[i]
+                lm = landmarks[i]
                 coord = self._denormalize_coordinates(lm.x, lm.y, frame_width, frame_height)
                 coords_points.append(coord)
 
@@ -75,14 +74,22 @@ class PointsDetection:
             P3_P5 = self._distance(coords_points[2], coords_points[4])
             P1_P4 = self._distance(coords_points[0], coords_points[3])
 
+            # Вычисляем координату центра глаза (зрачка) как среднее значение координат
+            eye_center = (
+                int(sum(coord[0] for coord in coords_points) / len(coords_points)),
+                int(sum(coord[1] for coord in coords_points) / len(coords_points))
+            )
+
             # Compute the eye aspect ratio
             ear = (P2_P6 + P3_P5) / (2.0 * P1_P4)
 
-        except:
+        except Exception as e:
+            logger.error(f"Ошибка при вычислении координат глаза (зрачка): {e}")
             ear = 0
             coords_points = []
+            eye_center = (0, 0)
 
-        return ear, coords_points
+        return ear, coords_points, eye_center
     
     def _distance(self, point_1, point_2):
         """Calculate l2-norm between two points"""
