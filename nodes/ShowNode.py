@@ -113,7 +113,7 @@ class ShowNode:
         
         return frame_element
     
-    def  _draw_points(self, image, points, radius=2, color=(0, 255, 0), thickness=1):
+    def  _draw_points(self, image, points, radius=3, color=(0, 255, 0), thickness=-1):
         """
         Рисует точки на изображении по указанным координатам.
         
