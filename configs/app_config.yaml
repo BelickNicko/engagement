@@ -33,12 +33,12 @@ PointsDetection:
 
 show_node:
   scale : 0.7  # Масштабирование итогового окна результатов при imshow=True
-  imshow: True  # Нужно ли выводить видео в процессе обработки
+  imshow: False  # Нужно ли выводить видео в процессе обработки
   fps_counter_N_frames_stat : 15  # Окно усредения fsp счетчика
   draw_fps_info : True  # Указывать ли fps обработки
   show_coords : True # Отображать ли точки глаз
   show_sleep_status: True # Отображать ли статус сонливости 
-
+  show_person: True
 Statistic:
   buffer_size: 30 # Время хранения статистик по количеству морганий
   how_often_seconds: 15 
@@ -46,6 +46,15 @@ Statistic:
 flask_server_video_node:
   host_ip: localhost  # где именно поднять сервис (localhost или "0.0.0.0")
   port: 8000
+
+person_detection_node:
+  weight_pth: models/yolov8s-seg.pt
+  classes_to_detect: [0] # какие классы детектить
+  use_only_cpu: False # Считать только на cpu или нет
+  conf: 0.25 # conf порог
+  iou: 0.5 # nms порог
+  overlap_roi_threshold: 5 # Процент перекрытия roi, считающийся триггером
+  time_duration: 2 # количество секунд сохранения аларма
 
 send_info_db_node:
   time_zone: 0  # базово время в GMT

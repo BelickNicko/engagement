@@ -28,3 +28,4 @@ class FrameElement:
         self.frame_result = frame_result
         self.blinking_frequency = blinking_frequency
         self.sleep_status = sleep_status
+        self.person_masks = [] # Маски пересекающих людей
