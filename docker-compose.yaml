@@ -1,27 +1,9 @@
 version: '3.8'
 
-networks:
-  ml_monitoring:
-    driver: bridge
-
 services:
-  pg_e:
-    container_name: pg_e
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_DB: db
-      POSTGRES_USER: ml_papa
-      POSTGRES_PASSWORD: ml_mama
-    ports:
-      - "5492:5432"
-    volumes:
-      - ./engagement_services/pg_ml:/var/lib/postgresql/data
-    networks:
-      - ml_monitoring
 
   grafana:
-    container_name: grafana_engagement
+    container_name: grafana_engagement 
     image: grafana/grafana:latest
     environment:
       - TZ=Europe/Moscow
@@ -29,14 +11,120 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=Power123
       - GF_ALLOW_EMBEDDING=true
       - GF_PANELS_DISABLE_SANITIZE_HTML=true
-    restart: unless-stopped
+      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
+      - GF_LOG_FILTERS=rendering:debug
+    restart: always
     ports:
       - "3112:3000"
     volumes:
       - ./engagement_services/grafana:/var/lib/grafana
     networks:
-      - ml_monitoring
-
-volumes:
-  pg_e:
-  grafana:
+      - engage_network
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: engagement_zookeeper
+    restart: always
+    ports:
+      - "2182:2181"
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "localhost", "2181" ] 
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - engage_network
+  kafka:
+    image: wurstmeister/kafka
+    container_name: engagement_kafka
+    restart: always
+    ports:
+      - "9094:9094"
+      # - "9097:9093"
+    environment:
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://127.0.0.1:9094
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9094
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 72 # удаление сообщений через 72 часа
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000 
+      KAFKA_LOG_CLEANUP_POLICY: delete
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "localhost", "9096" ] 
+      interval: 10s
+      timeout: 5s 
+      retries: 10
+    networks:
+      - engage_network
+  influxdb:
+    container_name: engagement_influxdb
+    restart: always
+    image: influxdb:1.8
+    ports:
+      - "8087:8086"
+    environment:
+      - INFLUX_DB=${INFLUX_DB}
+      - INFLUX_ADMIN_USER=${INFLUX_ADMIN_USER}
+      - INFLUX_ADMIN_PASSWORD=${INFLUX_ADMIN_PASSWORD}
+      - INFLUXDB_RETENTION_POLICY_AUTOCREATE=true
+      - INFLUXDB_RETENTION_DURATION=30d
+    volumes:
+      - ./engagement_services/influxdb_data:/var/lib/influxdb
+    networks:
+      - engage_network
+  telegraf:
+    container_name: engagement_telegraf
+    restart: always
+    image: telegraf
+    depends_on:
+      - influxdb
+    volumes:
+      - ./engagement_services/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    links:
+      - influxdb
+    ports:
+      - "8126:8125" 
+    networks:
+      - engage_network 
+  reporter:
+    container_name: grafana-reporter
+    restart: always
+    image: izakmarais/grafana-reporter:latest
+    command: "-ip grafana:3000"
+    ports:
+      - "8686:8686"
+    depends_on:
+      - grafana
+    networks:
+      - engage_network
+  renderer:
+    container_name: renderer
+    restart: always
+    image: grafana/grafana-image-renderer:latest
+    ports:
+      - 8081
+    networks:
+      - engage_network
+  minio:
+    container_name: minio
+    image: minio/minio
+    restart: always
+    ports:
+     - 8010:9000
+    volumes:
+      - ./engagement_services/minio_data:/data
+    environment:
+      - MINIO_BROWSER_REDIRECT_URL=http://localhost/minio-ui/
+    env_file:
+      - .env
+    command: server /data --console-address ":9001"
+    networks:
+      - engage_network
+networks:
+  engage_network:
+    driver: bridge
