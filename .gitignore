@@ -1,4 +1,4 @@
-# Игнорировать все файлы с указанными расширениями
+__pycache__
 *.zip
 *.json
 *.png
@@ -7,3 +7,8 @@
 *.JPG
 *.pt
 *.ipynb
+engagement_services
+.ipynb_checkpoints
+drafts
+logs
+
