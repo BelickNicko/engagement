@@ -8,7 +8,7 @@ services:
     environment:
       - TZ=Europe/Moscow
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=Power123
+      - GF_SECURITY_ADMIN_PASSWORD=passward
       - GF_ALLOW_EMBEDDING=true
       - GF_PANELS_DISABLE_SANITIZE_HTML=true
       - GF_RENDERING_SERVER_URL=http://renderer:8081/render
@@ -40,7 +40,6 @@ services:
     restart: always
     ports:
       - "9094:9094"
-      # - "9097:9093"
     environment:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://127.0.0.1:9094
@@ -68,9 +67,9 @@ services:
     ports:
       - "8087:8086"
     environment:
-      - INFLUX_DB=${INFLUX_DB}
-      - INFLUX_ADMIN_USER=${INFLUX_ADMIN_USER}
-      - INFLUX_ADMIN_PASSWORD=${INFLUX_ADMIN_PASSWORD}
+      - INFLUX_DB=influx_1
+      - INFLUX_ADMIN_USER=admin
+      - INFLUX_ADMIN_PASSWORD=passward
       - INFLUXDB_RETENTION_POLICY_AUTOCREATE=true
       - INFLUXDB_RETENTION_DURATION=30d
     volumes:
@@ -111,17 +110,17 @@ services:
     networks:
       - engage_network
   minio:
-    container_name: minio
+    container_name: engagement_minio
     image: minio/minio
     restart: always
     ports:
      - 8010:9000
+     - 9001:9001
     volumes:
       - ./engagement_services/minio_data:/data
     environment:
-      - MINIO_BROWSER_REDIRECT_URL=http://localhost/minio-ui/
-    env_file:
-      - .env
+      - MINIO_ROOT_USER=user
+      - MINIO_ROOT_PASSWORD=passward
     command: server /data --console-address ":9001"
     networks:
       - engage_network
