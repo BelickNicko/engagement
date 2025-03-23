@@ -2,6 +2,7 @@ import time
 import numpy as np
 from typing import List, Optional
 
+
 class FrameElement:
     # Класс, который характеризует каждый кадр
     def __init__(
@@ -11,17 +12,17 @@ class FrameElement:
         timestamp: float,
         frame_number: int,
         closed_eyes: Optional[int] = None,
-        detected_coords: Optional[List[List]] = [[0, 0],  [0, 0]],
-        eye_center_coords: Optional[List[List]] = [[0, 0],  [0, 0]],   
+        detected_coords: Optional[List[List]] = [[0, 0], [0, 0]],
+        eye_center_coords: Optional[List[List]] = [[0, 0], [0, 0]],
         blinking_frequency: Optional[float] = 0.0,
         sleep_status: int = 0,
-        iris_coords_array: np.ndarray = None, 
+        iris_coords_array: np.ndarray = None,
         distance_to_the_object: int = None,
         yolo_detected_human: list = [0],
         yolo_detected_gadget: list = None,
         movement_vectors: list = None,
     ) -> None:
-        
+
         self.source = source
         self.timestamp = timestamp
         self.frame_number = frame_number
@@ -35,4 +36,4 @@ class FrameElement:
         self.distance_to_the_object = distance_to_the_object
         self.yolo_detected_human = yolo_detected_human
         self.yolo_detected_gadget = yolo_detected_gadget
-        self.movement_vectors = movement_vectors,
+        self.movement_vectors = movement_vectors

@@ -3,7 +3,6 @@ from json import dumps
 import time
 import numpy as np
 from utils_local.utils import profile_time
-from elements.VideoEndBreakElement import VideoEndBreakElement
 from elements.FrameElement import FrameElement
 import logging
 
@@ -23,9 +22,6 @@ class KafkaProducerNode:
 
     @profile_time
     def process(self, frame_element: FrameElement):
-        # Выйти из обработки если это пришел VideoEndBreakElement а не FrameElement
-        if isinstance(frame_element, VideoEndBreakElement):
-            return frame_element
 
         current_time = time.time()
 
@@ -36,6 +32,14 @@ class KafkaProducerNode:
             current_time - self.last_send_time > self.how_often_sec
             or frame_element.frame_number == 1
         ):
+            movement_vectors = frame_element.movement_vectors
+            if movement_vectors is not None:
+                movement_vector_mean = np.mean(movement_vectors, axis=1)
+                movement_vector_x = movement_vector_mean[0]
+                movement_vector_y = movement_vector_mean[1]
+            else:
+                movement_vector_x = None
+                movement_vector_y = None
             data = {
                 "timestamp": frame_element.timestamp,
                 "blinking_frequency": (
@@ -61,6 +65,8 @@ class KafkaProducerNode:
                     if frame_element.yolo_detected_gadget is not None
                     else None
                 ),
+                "movement_vector_x": movement_vector_x,
+                "movement_vector_y": movement_vector_y,
             }
             self.kafka_producer.send(self.topic_name, value=data).get(timeout=1)
             logging.info(f"KAFKA sent message: {data} topic {self.topic_name}")
