@@ -1,35 +1,35 @@
 # --------------------------------------------- HYDRA -----------------------------------------------------
-defaults:  
-  - _self_  
-  - override hydra/hydra_logging: disabled  
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
   - override hydra/job_logging: custom
 
 hydra:
   output_subdir: null
-  run:  
+  run:
     dir: .
 # ----------------------------------------------- PIPELINE -------------------------------------------------
 
 pipeline:
-  save_video : True  # Сохранение итогового видео обработки
-  send_to_kafka : True  # Сохраняем ли инфо в бд (требуется заранее запустить микросервисы если ставите True)
-  render_video_flask : True # Отображение результатов обработки видеопотока в веб-интерфейсе (Flask) вместо cv2.imshow
+  save_video: True # Сохранение итогового видео обработки
+  send_to_kafka: True # Сохраняем ли инфо в бд (требуется заранее запустить микросервисы если ставите True)
+  render_video_flask: True # Отображение результатов обработки видеопотока в веб-интерфейсе (Flask) вместо cv2.imshow
   detect_human: True
 # ------------------------------------------------- NODES --------------------------------------------------
 VideoReader:
   src: 0 #test_videos/test_video.mp4  # путь до файла обработки или номер камеры
-  skip_secs : 1 # считываем кадры раз в <skip_secs> секунд
+  skip_secs: 1 # считываем кадры раз в <skip_secs> секунд
   start_timestamp: 0 #начальное время с которого стартуем
 
 PointsDetection:
-  max_num_faces : 1
-  refine_landmarks : True
-  min_detection_confidence : 0.6
-  min_tracking_confidence : 0.6
+  max_num_faces: 1
+  refine_landmarks: True
+  min_detection_confidence: 0.4
+  min_tracking_confidence: 0.4
   eye_idxs:
     left: [362, 385, 387, 263, 373, 380]
     right: [33, 160, 158, 133, 153, 144]
-  ear_tresh: 0.15
+  ear_tresh: 0.2
   how_often_seconds: 0.2
   iris_coords:
     left: [468, 469, 470, 471]
@@ -37,54 +37,53 @@ PointsDetection:
   camera_focal_length: 1
 
 show_node:
-  scale : 0.7  # Масштабирование итогового окна результатов при imshow=True
-  imshow: False  # Нужно ли выводить видео в процессе обработки
-  fps_counter_N_frames_stat : 15  # Окно усредения fsp счетчика
-  draw_fps_info : True # Указывать ли fps обработки
-  show_coords : True # Отображать ли точки глаз
-  show_sleep_status: False # Отображать ли статус сонливости 
+  scale: 0.7 # Масштабирование итогового окна результатов при imshow=True
+  imshow: False # Нужно ли выводить видео в процессе обработки
+  fps_counter_N_frames_stat: 15 # Окно усредения fsp счетчика
+  draw_fps_info: True # Указывать ли fps обработки
+  show_coords: True # Отображать ли точки глаз
+  show_sleep_status: False # Отображать ли статус сонливости
   show_irises: True
   show_eye_center_vectos: True
-  
+
 Statistic:
-  how_often_seconds_check: 10 # как часто проверяем статистику по чатсоте морганий 
+  how_often_seconds_check: 10 # как часто проверяем статистику по чатсоте морганий
   blinks_treshold_sleep_status: 0.75
   period_to_set_sleep_status: 10
 flask_server_video_node:
-  host_ip: localhost  # где именно поднять сервис (localhost или "0.0.0.0")
+  host_ip: localhost # где именно поднять сервис (localhost или "0.0.0.0")
   port: 8000
 
 person_detection_node:
-  weight_pth: models/yolov8n.pt
+  weight_pth: models/yolo11m.pt
   classes_to_detect: [0, 67] # какие классы детектить
   use_only_cpu: False # Считать только на cpu или нет
-  conf: 0.3 # conf порог
+  conf: 0.4 # conf порог
   iou: 0.5 # nms порог
-  time_duration: 5 # количество секунд сохранения аларма
+  time_duration: 10 # количество секунд сохранения аларма
 
 kafka_producer_node:
   bootstrap_servers: 127.0.0.1:9094 #kafka:29092  #127.0.0.1:9092
   topic_name: statistics_1
-  how_often_sec: 1.2   # раз в сколько секунд отправлять результат
+  how_often_sec: 1.2 # раз в сколько секунд отправлять результат
 
 alarm_producer_node:
   minio:
     minio_freeze_time_secs: 25
-    socket: localhost:8010
-    access_key: s3_access_key
-    secret_key: s3_secret_key
+    socket: 127.0.0.1:8010
+    access_key: user
+    secret_key: passward
     bucket_name: alarms
-  
   kafka:
     bootstrap_servers: 127.0.0.1:9094
     topic_name: statistics_1_alarms
   description_alarms:
-    sleep_status_alarm: 
+    sleep_status_alarm:
       name: сонливость
       priority_score: 50
-    human_out_of_frame_or_more_then_one: 
+    human_out_of_frame_or_more_then_one:
       name: нарушение количества людей
       priority_score: 50
-    gadget:  
+    gadget:
       name: телефон
       priority_score: 50
