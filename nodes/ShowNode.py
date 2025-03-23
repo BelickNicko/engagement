@@ -2,7 +2,6 @@ import logging
 import cv2
 
 from elements.FrameElement import FrameElement
-from elements.VideoEndBreakElement import VideoEndBreakElement
 from utils_local.utils import profile_time, FPS_Counter
 import math
 import random
@@ -49,9 +48,7 @@ class ShowNode:
 
     @profile_time
     def process(self, frame_element: FrameElement, fps_counter=None) -> FrameElement:
-        # Выйти из обработки если это пришел VideoEndBreakElement а не FrameElement
-        if isinstance(frame_element, VideoEndBreakElement):
-            return frame_element
+
         assert isinstance(
             frame_element, FrameElement
         ), f"ShowNode | Неправильный формат входного элемента {type(frame_element)}"
@@ -168,7 +165,6 @@ class ShowNode:
                     current_center_coords,
                     movement_vectors,
                 )
-            # print("movement_vectors", movement_vectors)
             self.previus_center_coords = current_center_coords
         frame_result = cv2.resize(frame_result, (800, 600))
         frame_element.frame_result = frame_result

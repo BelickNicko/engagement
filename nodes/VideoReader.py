@@ -6,7 +6,6 @@ from typing import Generator
 import cv2
 
 from elements.FrameElement import FrameElement
-from elements.VideoEndBreakElement import VideoEndBreakElement
 
 logger = logging.getLogger(__name__)
 

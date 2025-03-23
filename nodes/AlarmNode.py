@@ -56,7 +56,6 @@ class AlarmProducerNode:
         )
         if not minio_client.bucket_exists(self.minio_config["bucket_name"]):
             minio_client.make_bucket(self.minio_config["bucket_name"])
-
         return minio_client
 
     def _send_kafka_message(self, img_url, description, priority_score):
@@ -65,7 +64,7 @@ class AlarmProducerNode:
             "description": str(description),
             "priority_score": float(priority_score),
         }
-        print("message", message)
+        anomaly_logger.info(f"message: {message}")
         self.kafka_producer.send(
             self.topic_name,
             value=message,
@@ -98,9 +97,6 @@ class AlarmProducerNode:
         )
 
         url = self.minio_client.presigned_get_object(self.minio_config["bucket_name"], img_path)
-
-        if "minio" in url and NGINX_SOCKET_MINIO is not None:
-            url = url.replace("minio:9000", NGINX_SOCKET_MINIO)
 
         anomaly_logger.info(f"sent anomaly to {url}")
         return url

@@ -4,7 +4,6 @@ import time
 import numpy as np
 from collections import deque
 from elements.FrameElement import FrameElement
-from elements.VideoEndBreakElement import VideoEndBreakElement
 from elements.AlarmElement import AlarmElement
 
 logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ class Statistic:
         ):
             # если есть фиксация закрытых глаз и фрейм назад они были открыты, то в динамический буфер добавляется 1
             # если фрейм назад глаза тоже были закрыты, то пропускаем
-            # если нет фиксации того, что глаза закрыты и фрей назад они были закрыты,  то в динамический буфер добавляется 0
+            # если нет фиксации того, что глаза закрыты и фрейм назад они были закрыты,  то в динамический буфер добавляется 0
             if frame_element.closed_eyes:
                 if not self.eyes_were_closed:
                     self.eyes_were_closed = True
@@ -114,7 +113,7 @@ class Statistic:
         ]
         anomalies = list(filter(lambda x: x is not None, anomalies))
 
-        if len(anomalies) > 0 and frame_element.frame_number>600:
+        if len(anomalies) > 0 and frame_element.frame_number > 600:
             alarm_element = AlarmElement(
                 frame_element.source,
                 anomalies,

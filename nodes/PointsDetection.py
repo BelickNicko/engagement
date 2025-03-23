@@ -1,12 +1,10 @@
 import time
 import logging
 import mediapipe as mp
-from collections import deque
 import cv2
 import numpy as np
 from utils_local.utils import profile_time
 from elements.FrameElement import FrameElement
-from elements.VideoEndBreakElement import VideoEndBreakElement
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +34,7 @@ class PointsDetection:
         )
         self.previous_timestamp = 0
 
-        self.optimal_distance_coef = 550  # мм
+        self.optimal_distance_coef = 500  # мм
 
         self.iris_radius = 6
         self.iris_real_square = np.pi * self.iris_radius**2
@@ -50,8 +48,6 @@ class PointsDetection:
     @profile_time
     def process(self, frame_element: FrameElement) -> FrameElement:
 
-        if isinstance(frame_element, VideoEndBreakElement):
-            return frame_element
         assert isinstance(
             frame_element, FrameElement
         ), f"DetectionTrackingNodes | Неправильный формат входного элемента {type(frame_element)}"

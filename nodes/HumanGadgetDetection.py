@@ -1,7 +1,6 @@
 from ultralytics import YOLO
 import torch
 from utils_local.utils import profile_time
-from elements.VideoEndBreakElement import VideoEndBreakElement
 from elements.FrameElement import FrameElement
 import logging
 import time
@@ -34,9 +33,7 @@ class PersonGadgetDetectionNode:
 
     @profile_time
     def process(self, frame_element: FrameElement):
-        # Выйти из обработки если это пришел VideoEndBreakElement а не FrameElement
-        if isinstance(frame_element, VideoEndBreakElement):
-            return frame_element
+
         assert isinstance(
             frame_element, FrameElement
         ), f"DetectionNode | Неправильный формат входного элемента {type(frame_element)}"
