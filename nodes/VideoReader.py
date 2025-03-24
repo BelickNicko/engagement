@@ -38,7 +38,7 @@ class VideoReader:
 
         while True:
             ret, frame = self.stream.read()
-            if not ret:  # FIXME
+            if not ret:
                 break
 
             timestamp = time.time()  # timestamp
