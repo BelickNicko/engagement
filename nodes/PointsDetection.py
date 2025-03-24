@@ -39,8 +39,8 @@ class PointsDetection:
         self.iris_radius = 6
         self.iris_real_square = np.pi * self.iris_radius**2
 
-        self.LEFT_IRIS = [474, 475, 476, 477]
-        self.RIGHT_IRIS = [469, 470, 471, 472]
+        self.LEFT_IRIS = self.iris_coords["left"]
+        self.RIGHT_IRIS = self.iris_coords["right"]
 
         self.previus_center_coords = None
         self.prev_movenet_vecrots = None
@@ -138,11 +138,21 @@ class PointsDetection:
         return dist
 
     def iris_coords_det(self, lanmarks, frame_w, frame_h):
-        mesh_points = np.array(
-            [np.multiply([p.x, p.y], [frame_w, frame_h]).astype(int) for p in lanmarks]
-        )
-        (l_cx, l_cy), iris_left_radius = cv2.minEnclosingCircle(mesh_points[self.LEFT_IRIS])
-        (r_cx, r_cy), iris_right_radius = cv2.minEnclosingCircle(mesh_points[self.RIGHT_IRIS])
+
+        left_eye_coords = []
+        for lanmark_idx in self.LEFT_IRIS:
+            lm = lanmarks[lanmark_idx]
+            coord = self._denormalize_coordvinates(lm.x, lm.y, frame_w, frame_h)
+            left_eye_coords.append(coord)
+
+        right_eye_coords = []
+        for lanmark_idx in self.RIGHT_IRIS:
+            lm = lanmarks[lanmark_idx]
+            coord = self._denormalize_coordvinates(lm.x, lm.y, frame_w, frame_h)
+            right_eye_coords.append(coord)
+
+        (l_cx, l_cy), iris_left_radius = cv2.minEnclosingCircle(np.array(left_eye_coords))
+        (r_cx, r_cy), iris_right_radius = cv2.minEnclosingCircle(np.array(right_eye_coords))
         center_left = np.array([l_cx, l_cy], dtype=np.int32)
         center_right = np.array([r_cx, r_cy], dtype=np.int32)
         return [iris_left_radius, center_left, iris_right_radius, center_right]
