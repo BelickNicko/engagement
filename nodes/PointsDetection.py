@@ -96,7 +96,13 @@ class PointsDetection:
             frame_element.detected_coords = left_eye_coords + right_eye_coords
             frame_element.eye_center_coords = [left_eye_center, right_eye_center]
 
+            gaze_vector = self.calculate_gaze_direction(
+                left_eye_center, right_eye_center, iris_coords_array
+            )
+            frame_element.gaze_direction = gaze_vector
+
             self.previous_timestamp = frame_element.timestamp
+
         return frame_element
 
     def _denormalize_coordvinates(self, x, y, width, height):
@@ -183,3 +189,22 @@ class PointsDetection:
             movement_vectors.append((dx, dy))
 
         return movement_vectors
+
+    def calculate_gaze_direction(self, left_eye_center, right_eye_center, iris_coords_array):
+        left_iris_center = iris_coords_array[1]
+        right_iris_center = iris_coords_array[3]
+
+        left_gaze_vector = (
+            left_iris_center[0] - left_eye_center[0],
+            left_iris_center[1] - left_eye_center[1],
+        )
+        right_gaze_vector = (
+            right_iris_center[0] - right_eye_center[0],
+            right_iris_center[1] - right_eye_center[1],
+        )
+
+        avg_gaze_vector = (
+            (left_gaze_vector[0] + right_gaze_vector[0]) / 2,
+            (left_gaze_vector[1] + right_gaze_vector[1]) / 2,
+        )
+        return avg_gaze_vector

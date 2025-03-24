@@ -40,6 +40,14 @@ class KafkaProducerNode:
             else:
                 movement_vector_x = None
                 movement_vector_y = None
+
+            gaze_direction = frame_element.gaze_direction
+            if gaze_direction is not None:
+                gaze_direction_x = gaze_direction[0]
+                gaze_direction_y = gaze_direction[1]
+            else:
+                gaze_direction_x = None
+                gaze_direction_y = None
             data = {
                 "timestamp": frame_element.timestamp,
                 "blinking_frequency": (
@@ -67,6 +75,8 @@ class KafkaProducerNode:
                 ),
                 "movement_vector_x": movement_vector_x,
                 "movement_vector_y": movement_vector_y,
+                "gaze_direction_x": gaze_direction_x,
+                "gaze_direction_y": gaze_direction_y,
             }
             self.kafka_producer.send(self.topic_name, value=data).get(timeout=1)
             logging.info(f"KAFKA sent message: {data} topic {self.topic_name}")

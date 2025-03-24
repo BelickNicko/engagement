@@ -21,6 +21,7 @@ class FrameElement:
         yolo_detected_human: list = [0],
         yolo_detected_gadget: list = None,
         movement_vectors: list = None,
+        gaze_direction: tuple = None,
     ) -> None:
 
         self.source = source
@@ -37,3 +38,4 @@ class FrameElement:
         self.yolo_detected_human = yolo_detected_human
         self.yolo_detected_gadget = yolo_detected_gadget
         self.movement_vectors = movement_vectors
+        self.gaze_direction = gaze_direction
