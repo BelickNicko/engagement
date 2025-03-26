@@ -24,13 +24,22 @@ class Statistic:
         self.eyes_were_closed = False
         self.previus_blinking_frequency = 0
         self.time_eyes_closed = 0
-
+        self.video_fps = 30
         self.blinks_frequency_list = deque(maxlen=600)
+        self.current_time = None
 
     def process(self, frame_element: FrameElement) -> FrameElement:
-        current_time = frame_element.timestamp
-        # обновляем статусы раз в 1/10 секунды, иначе записываем предыдущие статусы
-        if (current_time - self.previus_time_blink_status_check >= 0.15) and (
+
+        if type(frame_element.source) is int:
+            self.current_time = frame_element.timestamp
+        else:
+            if self.current_time is None:
+                self.current_time = 0
+            else:
+                self.current_time += 1 / self.video_fps
+
+        # обновляем статусы раз в 1/20 секунды, иначе записываем предыдущие статусы
+        if (self.current_time - self.previus_time_blink_status_check >= 0.05) and (
             0 in frame_element.yolo_detected_human or len(frame_element.yolo_detected_human) == 0
         ):
             # если есть фиксация закрытых глаз и фрейм назад они были открыты, то в динамический буфер добавляется 1
@@ -39,18 +48,18 @@ class Statistic:
             if frame_element.closed_eyes:
                 if not self.eyes_were_closed:
                     self.eyes_were_closed = True
-                    self.blinks_frequency_list.append((1, current_time))
+                    self.blinks_frequency_list.append((1, self.current_time))
             else:
                 if self.eyes_were_closed:
                     self.eyes_were_closed = False
-                    self.timestamp_eyes_opened = current_time
+                    self.timestamp_eyes_opened = self.current_time
                     self.blinks_frequency_list.append((0, self.timestamp_eyes_opened))
             # вторая часть ноды
             # заходим в нее только, когда система разогрелась: номер текущего фрейма видеопотока больше 10
-            if frame_element.frame_number > 60:
+            if frame_element.frame_number > 30:
                 # отфильтровываем динамический буффер по времени, берем только последние 60 секунд
                 statistic_blinks_window = [
-                    x[0] for x in self.blinks_frequency_list if current_time - x[1] < 60
+                    x[0] for x in self.blinks_frequency_list if self.current_time - x[1] < 60
                 ]
                 # рассчитываем количество морганий за минуту и их процентаж
                 blinking_frequency = sum(statistic_blinks_window)
@@ -67,7 +76,7 @@ class Statistic:
                     frame_element.sleep_status = 0
 
                 # если время когда глаза не открыты больше порога, фиксируем состояние сонливости
-                if current_time - self.timestamp_eyes_opened > self.period_to_set_sleep_status:
+                if self.current_time - self.timestamp_eyes_opened > self.period_to_set_sleep_status:
                     frame_element.sleep_status = 1
                 self.prev_sleep_status = frame_element.sleep_status
                 # в зависимости от статуса сонливости задаем частоту морганий
@@ -78,7 +87,7 @@ class Statistic:
                     frame_element.blinking_frequency = None
                     self.previus_blinking_frequency = None
 
-            self.previus_time_blink_status_check = current_time
+            self.previus_time_blink_status_check = self.current_time
 
         else:
             if len(frame_element.yolo_detected_human) == 0:
