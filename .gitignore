@@ -1,4 +1,5 @@
-__pycache__
+**__pycache__
+**ipynb_checkpoints
 *.zip
 *.json
 *.png
@@ -6,9 +7,9 @@ __pycache__
 *.jpg
 *.JPG
 *.pt
+*.mp4
 *.ipynb
 engagement_services
 .ipynb_checkpoints
 drafts
 logs
-
