@@ -22,6 +22,8 @@ class FrameElement:
         yolo_detected_gadget: list = None,
         movement_vectors: list = None,
         gaze_direction: tuple = None,
+        yaw: float = None,
+        pitch: float = None,
     ) -> None:
 
         self.source = source
@@ -39,3 +41,5 @@ class FrameElement:
         self.yolo_detected_gadget = yolo_detected_gadget
         self.movement_vectors = movement_vectors
         self.gaze_direction = gaze_direction
+        self.yaw = yaw
+        self.pitch = pitch
