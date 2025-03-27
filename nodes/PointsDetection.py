@@ -54,7 +54,8 @@ class PointsDetection:
 
         frame = frame_element.frame_result
         frame_h, frame_w, _ = frame.shape
-        results = self.face_mesh.process(frame)
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = self.face_mesh.process(rgb_frame)
         if results.multi_face_landmarks:
             lanmarks = results.multi_face_landmarks[0].landmark
             left_eye_ear, left_eye_coords, left_eye_center = self.eye_coords(
@@ -103,6 +104,9 @@ class PointsDetection:
 
             self.previous_timestamp = frame_element.timestamp
 
+            frame_element.yaw, frame_element.pitch = self.calculate_head_pose(
+                lanmarks, frame_w, frame_h
+            )
         return frame_element
 
     def _denormalize_coordvinates(self, x, y, width, height):
@@ -208,3 +212,26 @@ class PointsDetection:
             (left_gaze_vector[1] + right_gaze_vector[1]) / 2,
         )
         return avg_gaze_vector
+
+    def calculate_head_pose(self, landmarks, frame_width, frame_height):
+        # Получение координат ключевых точек
+
+        nose_tip = landmarks[1]
+        left_eye = landmarks[130]
+        right_eye = landmarks[362]
+
+        nose_tip = self._denormalize_coordvinates(nose_tip.x, nose_tip.y, frame_width, frame_height)
+        left_eye = self._denormalize_coordvinates(left_eye.x, left_eye.y, frame_width, frame_height)
+        right_eye = self._denormalize_coordvinates(
+            right_eye.x, right_eye.y, frame_width, frame_height
+        )
+
+        vec_nose = np.array(nose_tip) - np.array(left_eye)
+
+        # Угол рыскания (Yaw)
+        yaw = np.arctan2(vec_nose[1], vec_nose[0]) * 180 / np.pi
+
+        # Угол тангажа (Pitch)
+        pitch = np.arctan2(vec_nose[0], vec_nose[1]) * 180 / np.pi
+
+        return yaw, pitch
