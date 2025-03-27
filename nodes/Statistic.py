@@ -17,15 +17,13 @@ class Statistic:
         self.blinks_treshold_sleep_status = statistic_config["blinks_treshold_sleep_status"]
         self.period_to_set_sleep_status = statistic_config["period_to_set_sleep_status"]
         self.timestamp_eyes_opened = time.time()  # время когда глаза последний раз были открыты
-        self.previus_time_blink_status_check = (
-            time.time()
-        )  # время последней проверки на частоту морганий
+        self.previus_time_blink_status_check = 0
         self.prev_sleep_status = 0
         self.eyes_were_closed = False
         self.previus_blinking_frequency = 0
         self.time_eyes_closed = 0
         self.video_fps = 30
-        self.blinks_frequency_list = deque(maxlen=600)
+        self.blinks_frequency_list = deque(maxlen=1500)
         self.current_time = None
 
     def process(self, frame_element: FrameElement) -> FrameElement:
@@ -39,7 +37,7 @@ class Statistic:
                 self.current_time += 1 / self.video_fps
 
         # обновляем статусы раз в 1/20 секунды, иначе записываем предыдущие статусы
-        if (self.current_time - self.previus_time_blink_status_check >= 0.05) and (
+        if (self.current_time - self.previus_time_blink_status_check >= 0.025) and (
             0 in frame_element.yolo_detected_human or len(frame_element.yolo_detected_human) == 0
         ):
             # если есть фиксация закрытых глаз и фрейм назад они были открыты, то в динамический буфер добавляется 1
@@ -55,7 +53,7 @@ class Statistic:
                     self.timestamp_eyes_opened = self.current_time
                     self.blinks_frequency_list.append((0, self.timestamp_eyes_opened))
             # вторая часть ноды
-            # заходим в нее только, когда система разогрелась: номер текущего фрейма видеопотока больше 10
+            # заходим в нее только, когда система разогрелась: номер текущего фрейма видеопотока больше 30
             if frame_element.frame_number > 30:
                 # отфильтровываем динамический буффер по времени, берем только последние 60 секунд
                 statistic_blinks_window = [
@@ -104,7 +102,7 @@ class Statistic:
             sleep_status_alarm = None
 
         human_out_of_frame_or_more_then_one_alarm = frame_element.yolo_detected_human
-        if len(human_out_of_frame_or_more_then_one_alarm) != 1 and frame_element.frame_number > 200:
+        if len(human_out_of_frame_or_more_then_one_alarm) != 1 and frame_element.frame_number > 30:
             human_out_of_frame_or_more_then_one_alarm = "human_out_of_frame_or_more_then_one"
         else:
             human_out_of_frame_or_more_then_one_alarm = None
