@@ -16,7 +16,7 @@ class Statistic:
         self.how_often_seconds_check = statistic_config["how_often_seconds_check"]
         self.blinks_treshold_sleep_status = statistic_config["blinks_treshold_sleep_status"]
         self.period_to_set_sleep_status = statistic_config["period_to_set_sleep_status"]
-        self.timestamp_eyes_opened = time.time()  # время когда глаза последний раз были открыты
+        self.timestamp_eyes_opened = time.time()
         self.previus_time_blink_status_check = 0
         self.prev_sleep_status = 0
         self.eyes_were_closed = False
@@ -26,9 +26,25 @@ class Statistic:
         self.blinks_frequency_list = deque(maxlen=1500)
         self.current_time = None
 
-    def process(self, frame_element: FrameElement) -> FrameElement:
+    def process(self, frame_element: FrameElement) -> tuple[FrameElement, AlarmElement | None]:
+        # Шаг 1: Обновление временной метки
+        self.update_current_time(frame_element)
 
-        if type(frame_element.source) is int:
+        # Шаг 2: Проверка необходимости обновления статусов
+        if self.should_update_blink_status(frame_element):
+            self.process_eye_status(frame_element)
+            self.calculate_sleep_status(frame_element)
+        else:
+            self.set_previous_statuses(frame_element)
+
+        # Шаг 3: Генерация предупреждений
+        alarm_element = self.generate_alarms(frame_element)
+
+        return frame_element, alarm_element
+
+    def update_current_time(self, frame_element: FrameElement) -> None:
+        """Обновляет текущее время на основе источника фрейма."""
+        if isinstance(frame_element.source, int):
             self.current_time = frame_element.timestamp
         else:
             if self.current_time is None:
@@ -36,82 +52,86 @@ class Statistic:
             else:
                 self.current_time += 1 / self.video_fps
 
-        # обновляем статусы раз в 1/20 секунды, иначе записываем предыдущие статусы
-        if (self.current_time - self.previus_time_blink_status_check >= 0.025) and (
+    def should_update_blink_status(self, frame_element: FrameElement) -> bool:
+        """Проверяет, нужно ли обновлять статус моргания."""
+        return (self.current_time - self.previus_time_blink_status_check >= 0.025) and (
             0 in frame_element.yolo_detected_human or len(frame_element.yolo_detected_human) == 0
-        ):
-            # если есть фиксация закрытых глаз и фрейм назад они были открыты, то в динамический буфер добавляется 1
-            # если фрейм назад глаза тоже были закрыты, то пропускаем
-            # если нет фиксации того, что глаза закрыты и фрейм назад они были закрыты,  то в динамический буфер добавляется 0
-            if frame_element.closed_eyes:
-                if not self.eyes_were_closed:
-                    self.eyes_were_closed = True
-                    self.blinks_frequency_list.append((1, self.current_time))
+        )
+
+    def process_eye_status(self, frame_element: FrameElement) -> None:
+        """Обрабатывает состояние открытых/закрытых глаз."""
+        if frame_element.closed_eyes:
+            if not self.eyes_were_closed:
+                self.eyes_were_closed = True
+                self.blinks_frequency_list.append((1, self.current_time))
+        else:
+            if self.eyes_were_closed:
+                self.eyes_were_closed = False
+                self.timestamp_eyes_opened = self.current_time
+                self.blinks_frequency_list.append((0, self.timestamp_eyes_opened))
+
+    def calculate_sleep_status(self, frame_element: FrameElement) -> None:
+        """Рассчитывает статус сонливости."""
+        if frame_element.frame_number > 30:
+            statistic_blinks_window = [
+                x[0] for x in self.blinks_frequency_list if self.current_time - x[1] < 60
+            ]
+            blinking_frequency = sum(statistic_blinks_window)
+
+            try:
+                percentage_share_of_blink = blinking_frequency / len(statistic_blinks_window)
+            except ZeroDivisionError:
+                print("Система разогревается")
+                return
+
+            # Определение состояния сонливости
+            if percentage_share_of_blink > self.blinks_treshold_sleep_status:
+                frame_element.sleep_status = 1
             else:
-                if self.eyes_were_closed:
-                    self.eyes_were_closed = False
-                    self.timestamp_eyes_opened = self.current_time
-                    self.blinks_frequency_list.append((0, self.timestamp_eyes_opened))
-            # вторая часть ноды
-            # заходим в нее только, когда система разогрелась: номер текущего фрейма видеопотока больше 30
-            if frame_element.frame_number > 30:
-                # отфильтровываем динамический буффер по времени, берем только последние 60 секунд
-                statistic_blinks_window = [
-                    x[0] for x in self.blinks_frequency_list if self.current_time - x[1] < 60
-                ]
-                # рассчитываем количество морганий за минуту и их процентаж
-                blinking_frequency = sum(statistic_blinks_window)
-                try:
-                    percentage_share_of_blink = blinking_frequency / len(statistic_blinks_window)
-                except ZeroDivisionError:
-                    print("система разогревается")
-                    return frame_element, None
-                # проверяем, фиксируется ли состояние сонливости
-                # если процентаж больше установленного порога, то фиксируем состояние сонливости
-                if percentage_share_of_blink > self.blinks_treshold_sleep_status:
-                    frame_element.sleep_status = 1
-                else:
-                    frame_element.sleep_status = 0
+                frame_element.sleep_status = 0
 
-                # если время когда глаза не открыты больше порога, фиксируем состояние сонливости
-                if self.current_time - self.timestamp_eyes_opened > self.period_to_set_sleep_status:
-                    frame_element.sleep_status = 1
-                self.prev_sleep_status = frame_element.sleep_status
-                # в зависимости от статуса сонливости задаем частоту морганий
-                if not frame_element.sleep_status:
-                    frame_element.blinking_frequency = blinking_frequency
-                    self.previus_blinking_frequency = blinking_frequency
-                else:
-                    frame_element.blinking_frequency = None
-                    self.previus_blinking_frequency = None
+            if self.current_time - self.timestamp_eyes_opened > self.period_to_set_sleep_status:
+                frame_element.sleep_status = 1
 
+            # Установка частоты морганий
+            if not frame_element.sleep_status:
+                frame_element.blinking_frequency = blinking_frequency
+                self.previus_blinking_frequency = blinking_frequency
+            else:
+                frame_element.blinking_frequency = None
+                self.previus_blinking_frequency = None
+
+            self.prev_sleep_status = frame_element.sleep_status
             self.previus_time_blink_status_check = self.current_time
 
+    def set_previous_statuses(self, frame_element: FrameElement) -> None:
+        """Устанавливает предыдущие статусы, если не нужно обновлять."""
+        if len(frame_element.yolo_detected_human) != 1:
+            frame_element.blinking_frequency = None
+            frame_element.sleep_status = None
         else:
-            if len(frame_element.yolo_detected_human) == 0:
-                frame_element.blinking_frequency = None
-                frame_element.sleep_status = None
-            else:
-                frame_element.blinking_frequency = self.previus_blinking_frequency
-                frame_element.sleep_status = self.prev_sleep_status
+            frame_element.blinking_frequency = self.previus_blinking_frequency
+            frame_element.sleep_status = self.prev_sleep_status
 
-        sleep_status_alarm = frame_element.sleep_status
-        if sleep_status_alarm == 1 and frame_element.frame_number > 300:
-            sleep_status_alarm = "sleep_status_alarm"
-        else:
-            sleep_status_alarm = None
+    def generate_alarms(self, frame_element: FrameElement) -> AlarmElement | None:
+        """Генерирует предупреждения (алармы)."""
+        sleep_status_alarm = (
+            "sleep_status_alarm"
+            if frame_element.sleep_status == 1 and frame_element.frame_number > 300
+            else None
+        )
 
-        human_out_of_frame_or_more_then_one_alarm = frame_element.yolo_detected_human
-        if len(human_out_of_frame_or_more_then_one_alarm) != 1 and frame_element.frame_number > 30:
-            human_out_of_frame_or_more_then_one_alarm = "human_out_of_frame_or_more_then_one"
-        else:
-            human_out_of_frame_or_more_then_one_alarm = None
+        human_out_of_frame_or_more_then_one_alarm = (
+            "human_out_of_frame_or_more_then_one"
+            if len(frame_element.yolo_detected_human) != 1 and frame_element.frame_number > 30
+            else None
+        )
 
-        gadget_detection_alarm = frame_element.yolo_detected_gadget
-        if len(gadget_detection_alarm) == 1 and frame_element.frame_number > 300:
-            gadget_detection_alarm = "gadget"
-        else:
-            gadget_detection_alarm = None
+        gadget_detection_alarm = (
+            "gadget"
+            if len(frame_element.yolo_detected_gadget) == 1 and frame_element.frame_number > 300
+            else None
+        )
 
         anomalies = [
             sleep_status_alarm,
@@ -121,12 +141,10 @@ class Statistic:
         anomalies = list(filter(lambda x: x is not None, anomalies))
 
         if len(anomalies) > 0 and frame_element.frame_number > 600:
-            alarm_element = AlarmElement(
+            return AlarmElement(
                 frame_element.source,
                 anomalies,
                 frame_element.frame_result,
                 frame_element.timestamp,
             )
-        else:
-            alarm_element = None
-        return frame_element, alarm_element
+        return None
