@@ -217,8 +217,8 @@ class PointsDetection:
         # Получение координат ключевых точек
 
         nose_tip = landmarks[1]
-        left_eye = landmarks[130]
-        right_eye = landmarks[362]
+        left_eye = landmarks[159]
+        right_eye = landmarks[386]
 
         nose_tip = self._denormalize_coordvinates(nose_tip.x, nose_tip.y, frame_width, frame_height)
         left_eye = self._denormalize_coordvinates(left_eye.x, left_eye.y, frame_width, frame_height)
