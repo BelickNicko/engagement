@@ -77,6 +77,8 @@ class KafkaProducerNode:
                 "movement_vector_y": movement_vector_y,
                 "gaze_direction_x": gaze_direction_x,
                 "gaze_direction_y": gaze_direction_y,
+                "yaw": frame_element.yaw,
+                "pitch": frame_element.pitch,
             }
             self.kafka_producer.send(self.topic_name, value=data).get(timeout=1)
             logging.info(f"KAFKA sent message: {data} topic {self.topic_name}")
