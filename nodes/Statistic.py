@@ -22,7 +22,7 @@ class Statistic:
         self.eyes_were_closed = False
         self.previus_blinking_frequency = 0
         self.time_eyes_closed = 0
-        self.video_fps = 30
+        self.video_fps = 60
         self.blinks_frequency_list = deque(maxlen=1500)
         self.current_time = None
 
@@ -98,8 +98,8 @@ class Statistic:
                 frame_element.blinking_frequency = blinking_frequency
                 self.previus_blinking_frequency = blinking_frequency
             else:
-                frame_element.blinking_frequency = None
-                self.previus_blinking_frequency = None
+                # если статус сна то не обновляем частоту морганий
+                frame_element.blinking_frequency = self.previus_blinking_frequency
 
             self.prev_sleep_status = frame_element.sleep_status
             self.previus_time_blink_status_check = self.current_time
