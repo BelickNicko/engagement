@@ -22,7 +22,7 @@ class Statistic:
         self.eyes_were_closed = False
         self.previus_blinking_frequency = 0
         self.time_eyes_closed = 0
-        self.video_fps = 60
+        self.video_fps = 30
         self.blinks_frequency_list = deque(maxlen=1500)
         self.current_time = None
 
@@ -60,21 +60,24 @@ class Statistic:
 
     def process_eye_status(self, frame_element: FrameElement) -> None:
         """Обрабатывает состояние открытых/закрытых глаз."""
+        smooth_window = [
+            x[0] for x in self.blinks_frequency_list if self.current_time - x[1] <= 0.5
+        ]
         if frame_element.closed_eyes:
-            if not self.eyes_were_closed:
+            if not self.eyes_were_closed and sum(smooth_window) == 0:
                 self.eyes_were_closed = True
                 self.blinks_frequency_list.append((1, self.current_time))
         else:
             if self.eyes_were_closed:
                 self.eyes_were_closed = False
-                self.timestamp_eyes_opened = self.current_time
                 self.blinks_frequency_list.append((0, self.timestamp_eyes_opened))
+            self.timestamp_eyes_opened = self.current_time
 
     def calculate_sleep_status(self, frame_element: FrameElement) -> None:
         """Рассчитывает статус сонливости."""
         if frame_element.frame_number > 30:
             statistic_blinks_window = [
-                x[0] for x in self.blinks_frequency_list if self.current_time - x[1] < 60
+                x[0] for x in self.blinks_frequency_list if self.current_time - x[1] <= 60
             ]
             blinking_frequency = sum(statistic_blinks_window)
 
@@ -91,6 +94,7 @@ class Statistic:
                 frame_element.sleep_status = 0
 
             if self.current_time - self.timestamp_eyes_opened > self.period_to_set_sleep_status:
+                print("imhere sleep status set")
                 frame_element.sleep_status = 1
 
             # Установка частоты морганий
@@ -106,7 +110,7 @@ class Statistic:
 
     def set_previous_statuses(self, frame_element: FrameElement) -> None:
         """Устанавливает предыдущие статусы, если не нужно обновлять."""
-        if len(frame_element.yolo_detected_human) != 1:
+        if len(frame_element.yolo_detected_human) != 10:
             frame_element.blinking_frequency = None
             frame_element.sleep_status = None
         else:
