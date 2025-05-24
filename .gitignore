@@ -7,8 +7,10 @@
 *.jpg
 *.JPG
 *.pt
+*.csv
 *.mp4
 *.ipynb
+*.mov
 engagement_services
 .ipynb_checkpoints
 drafts
